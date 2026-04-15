@@ -2,7 +2,7 @@ import { createTRPCReact } from '@trpc/react-query';
 import { QueryClient } from '@tanstack/react-query';
 import type { AppRouter } from 'backend/trpc';
 
-export const trpc = createTRPCReact<AppRouter>();
+
 
 // Clean and simple
 export const queryClient = new QueryClient({

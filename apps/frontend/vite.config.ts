@@ -9,7 +9,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/trpc': 'http://localhost:3001/trpc',
+      '/trpc': 'http://localhost:3001/',
     },
   }
 });

@@ -4,7 +4,7 @@ import { appRouter } from './trpc';
 const server = createHTTPServer({
     router: appRouter,
     createContext: () => ({}),
-    basePath: '/trpc',
+    basePath: '/trpc/',
 });
 
 server.listen(3001, () => {
