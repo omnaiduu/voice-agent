@@ -1,45 +1,11 @@
 import Redis from "ioredis";
 import { env } from "./env";
-import { parse } from "node:path";
 import { EventEmitter } from "node:events";
 
+import type { Joined, Left, Room, RoomMembers, RoomRedis } from "./types";
 
 export const redisEvents = new EventEmitter();
 redisEvents.setMaxListeners(500); // safe for many concurrent rooms
-
-
-type Participant = {
-	sessionId: string;
-	voiceId: string;
-	audioId: string;
-};
-
-// merge both this type below
-
-type Joined = {
-	type: "joined";
-	sessionId: string;
-};
-
-type Left = {
-	type: "left";
-	sessionId: string;
-};
-
-type RoomMembers = {
-	audioTrack: string;
-	videoTrack: string;
-};
-
-type Room = {
-	[sessionid: string]: RoomMembers[];
-};
-
-type RoomRedis = {
-	[sessionid: string]: string;
-};
-
-export type RoomEvent = Joined | Left;
 
 export const redis = new Redis({
 	host: env.REDIS_HOST || "localhost",
@@ -77,12 +43,22 @@ export async function addParticipant(
 	redisMulti.hmset(
 		roomId,
 		serializeRoom({
-			[sessionId]: [{ audioTrack, videoTrack }],
+			[sessionId]: { audioTrack, videoTrack },
 		}),
 	);
 	const event: Joined = { type: "joined", sessionId };
 	redisMulti.publish(roomId, JSON.stringify(event));
 	await redisMulti.exec();
+}
+
+export async function getparticipant(
+	roomId: string,
+	sessionId: string,
+): Promise<Room | null> {
+	const data = (await redis.hget(roomId, sessionId)) as RoomRedis | null;
+	if (!data) return null;
+
+	return parseRoom(data);
 }
 
 export async function removeParticipant(

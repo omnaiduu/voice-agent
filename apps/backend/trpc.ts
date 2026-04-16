@@ -1,15 +1,18 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { cf } from "./cloudflare";
+import type { components } from "./cloudflare-sfu/types";
 import { env } from "./env";
 import { getIceServer } from "./turn";
 import z from "zod";
 import {
 	addParticipant,
+	getAllParticipants,
+	getparticipant,
 	redisEvents,
 	redisSub,
 	removeParticipant,
-	type RoomEvent,
 } from "./redis";
+import { PullTracksResponseSchema, type RoomEvent } from "./types";
 import { on } from "node:events";
 const t = initTRPC.create({
 	sse: {
@@ -35,20 +38,6 @@ const PushTrackResponseSchema = z.object({
 			}),
 		)
 		.min(2),
-});
-
-const TrackArray = z.array(
-	z.object({
-		sessionId: z.string(),
-		trackName: z.string(),
-	}),
-);
-
-const PullTracksResponseSchema = z.object({
-	tracks: TrackArray,
-	sessionDescription: z.object({
-		sdp: z.string(),
-	}),
 });
 
 export const appRouter = router({
@@ -101,6 +90,7 @@ export const appRouter = router({
 			z.object({
 				sessionId: z.string(),
 				SDP: z.string(),
+				roomId: z.string().default("default"),
 			}),
 		)
 		.mutation(async ({ input }) => {
@@ -140,17 +130,30 @@ export const appRouter = router({
 			const { sessionDescription, tracks } = dataValidation.data;
 			const track1 = tracks[0].trackName;
 			const track2 = tracks[1].trackName;
-			await addParticipant("default", input.sessionId, track1, track2);
+			await addParticipant(input.roomId, input.sessionId, track1, track2);
 			return { sdp: sessionDescription.sdp };
 		}),
+
 	pullTracks: publicProcedure
 		.input(
 			z.object({
 				sessionId: z.string(),
-				tracks: TrackArray,
+				roomId: z.string().default("default"),
+				participantSessionId: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ input }) => {
+			const room = input.participantSessionId
+				? await getparticipant(input.roomId, input.participantSessionId)
+				: await getAllParticipants(input.roomId);
+
+			if (!room) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Participant not found in room",
+				});
+			}
+
 			const { data, error } = await cf.POST(
 				"/apps/{appId}/sessions/{sessionId}/tracks/new",
 				{
@@ -161,14 +164,24 @@ export const appRouter = router({
 						},
 					},
 					body: {
-						tracks: input.tracks.map((track) => ({
-							location: "remote" as const,
-							trackName: track.trackName,
-							sessionId: track.sessionId,
-						})),
+						tracks: Object.entries(room).flatMap(
+							([sessionId, { audioTrack, videoTrack }]) => [
+								{
+									location: "remote" as const,
+									sessionId,
+									trackName: audioTrack,
+								},
+								{
+									location: "remote" as const,
+									sessionId,
+									trackName: videoTrack,
+								},
+							],
+						) as components["schemas"]["TrackObject"][],
 					},
 				},
 			);
+
 			if (error || !data) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
@@ -176,7 +189,17 @@ export const appRouter = router({
 				});
 			}
 
-			return data;
+			const dataValidation = PullTracksResponseSchema.safeParse(data);
+			if (!dataValidation.success) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Invalid response from Cloudflare",
+				});
+			}
+
+			return {
+				...dataValidation.data,
+			};
 		}),
 	renegotiate: publicProcedure
 		.input(

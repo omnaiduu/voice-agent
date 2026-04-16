@@ -17,7 +17,8 @@
   },
   "exports": {
     ".": "./index.ts",
-    "./trpc": "./trpc.ts"
+    "./trpc": "./trpc.ts",
+    "./roomTypes": "./types.ts"
   },
   "peerDependencies": {
     "typescript": "^5"
