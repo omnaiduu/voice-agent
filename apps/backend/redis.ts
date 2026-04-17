@@ -1,7 +1,8 @@
 // Redis utilities for managing room participants and real-time events
+
+import { EventEmitter } from "node:events";
 import Redis from "ioredis";
 import { env } from "./env";
-import { EventEmitter } from "node:events";
 
 import type { Joined, Left, Room, RoomMembers, RoomRedis } from "./types";
 

@@ -1,9 +1,9 @@
+import { on } from "node:events";
 import { initTRPC, TRPCError } from "@trpc/server";
+import z from "zod";
 import { cf } from "./cloudflare";
 import type { components } from "./cloudflare-sfu/types";
 import { env } from "./env";
-import { getIceServer } from "./turn";
-import z from "zod";
 import {
 	addParticipant,
 	getAllParticipants,
@@ -12,8 +12,9 @@ import {
 	redisSub,
 	removeParticipant,
 } from "./redis";
+import { getIceServer } from "./turn";
 import { PullTracksResponseSchema, type RoomEvent } from "./types";
-import { on } from "node:events";
+
 const t = initTRPC.create({
 	sse: {
 		ping: {
@@ -248,7 +249,7 @@ export const appRouter = router({
 
 			// Subscribe to Redis channel (safe to call multiple times)
 			await redisSub.subscribe(channel).catch(() => {});
-				
+
 			try {
 				// This is the clean modern pattern
 				for await (const [rawMessage] of on(redisEvents, channel, { signal })) {

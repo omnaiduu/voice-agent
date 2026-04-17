@@ -1,7 +1,7 @@
+import type { StateCreator } from "zustand";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import type { StateCreator } from "zustand";
-import type { Participant, CloudflareTrack } from "../types";
+import type { CloudflareTrack, Participant } from "../types";
 
 interface VoiceState {
 	status: "joining" | "joined" | "leaving" | "left" | "error";
@@ -17,7 +17,7 @@ interface VoiceState {
 }
 
 // Fully typed store creator (no `any`
-// 
+//
 const storeCreator: StateCreator<VoiceState> = (set) => ({
 	mySessionId: "",
 	participants: {},
@@ -53,7 +53,7 @@ const storeCreator: StateCreator<VoiceState> = (set) => ({
 
 			return { participants };
 		}),
-// Attach the real MediaStreamTrack to the participant and add it to their MediaStream
+	// Attach the real MediaStreamTrack to the participant and add it to their MediaStream
 	attachRealTrack: (mid: string, realTrack: MediaStreamTrack) =>
 		set((state) => {
 			const participants = { ...state.participants };
@@ -66,7 +66,7 @@ const storeCreator: StateCreator<VoiceState> = (set) => ({
 			}
 			return { participants };
 		}),
-// Remove participant and stop their tracks
+	// Remove participant and stop their tracks
 	removeParticipant: (sessionId: string) =>
 		set((state) => {
 			const participants = { ...state.participants };
@@ -79,8 +79,7 @@ const storeCreator: StateCreator<VoiceState> = (set) => ({
 			return { participants };
 		}),
 
-        
-// Reset the store to its initial state
+	// Reset the store to its initial state
 	reset: () => set({ mySessionId: "", participants: {}, isConnected: false }),
 });
 

@@ -3,13 +3,13 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [tailwindcss(), reactRouter()],
-  resolve: {
-    tsconfigPaths: true,
-  },
-  server: {
-    proxy: {
-      '/trpc': 'http://localhost:3001/',
-    },
-  }
+	plugins: [tailwindcss(), reactRouter()],
+	resolve: {
+		tsconfigPaths: true,
+	},
+	server: {
+		proxy: {
+			"/trpc": "http://localhost:3001/",
+		},
+	},
 });

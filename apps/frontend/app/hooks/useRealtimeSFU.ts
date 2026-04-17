@@ -1,10 +1,8 @@
-import { useRef, useCallback } from "react";
-
-import { useVoiceStore } from "../store/room";
-
-import { useTRPC } from "~/trpc";
 import { useMutation } from "@tanstack/react-query";
 import { useSubscription } from "@trpc/tanstack-react-query";
+import { useCallback, useRef } from "react";
+import { useTRPC } from "~/trpc";
+import { useVoiceStore } from "../store/room";
 
 export function useRealtimeSFU(roomId = "default") {
 	const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -114,16 +112,6 @@ export function useRealtimeSFU(roomId = "default") {
 					console.error("Failed to get user media:", err);
 					return null;
 				});
-            
-
-				
-
-
-			
-
-				
-
-
 
 			localStreamRef.current = localStream;
 			if (!localStream) {

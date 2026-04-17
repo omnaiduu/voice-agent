@@ -1,3 +1,4 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
 	isRouteErrorResponse,
 	Links,
@@ -7,7 +8,6 @@ import {
 	ScrollRestoration,
 } from "react-router";
 import { queryClient, TRPCProvider } from "~/trpc";
-import { QueryClientProvider } from "@tanstack/react-query";
 import type { Route } from "./+types/root";
 import "./app.css";
 import {
