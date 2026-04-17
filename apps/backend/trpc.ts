@@ -7,12 +7,16 @@ import z from "zod";
 import {
 	addParticipant,
 	getAllParticipants,
-	getparticipant,
+	getParticipant,
 	redisEvents,
 	redisSub,
 	removeParticipant,
 } from "./redis";
-import { PullTracksResponseSchema, type RoomEvent } from "./types";
+import {
+	PullTracksResponseSchema,
+	type RoomEvent,
+	type RoomMembers,
+} from "./types";
 import { on } from "node:events";
 const t = initTRPC.create({
 	sse: {
@@ -144,7 +148,7 @@ export const appRouter = router({
 		)
 		.mutation(async ({ input }) => {
 			const room = input.participantSessionId
-				? await getparticipant(input.roomId, input.participantSessionId)
+				? await getParticipant(input.roomId, input.participantSessionId)
 				: await getAllParticipants(input.roomId);
 
 			if (!room) {
@@ -164,8 +168,9 @@ export const appRouter = router({
 						},
 					},
 					body: {
-						tracks: Object.entries(room).flatMap(
-							([sessionId, { audioTrack, videoTrack }]) => [
+						tracks: Object.entries(room).flatMap(([sessionId, participant]) => {
+							const { audioTrack, videoTrack } = participant as RoomMembers;
+							return [
 								{
 									location: "remote" as const,
 									sessionId,
@@ -176,8 +181,8 @@ export const appRouter = router({
 									sessionId,
 									trackName: videoTrack,
 								},
-							],
-						) as components["schemas"]["TrackObject"][],
+							];
+						}) as components["schemas"]["TrackObject"][],
 					},
 				},
 			);
@@ -248,7 +253,7 @@ export const appRouter = router({
 
 			// Subscribe to Redis channel (safe to call multiple times)
 			await redisSub.subscribe(channel).catch(() => {});
-				
+
 			try {
 				// This is the clean modern pattern
 				for await (const [rawMessage] of on(redisEvents, channel, { signal })) {
