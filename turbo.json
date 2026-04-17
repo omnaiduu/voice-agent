@@ -16,6 +16,14 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "opencode": {
+      "cache": false,
+      "persistent": true
+    },
+    "tunnel": {
+      "cache": false,
+      "persistent": true
     }
   }
 }
