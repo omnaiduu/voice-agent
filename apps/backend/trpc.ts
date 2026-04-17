@@ -220,6 +220,7 @@ export const appRouter = router({
 					},
 					body: {
 						sessionDescription: {
+							type: "offer",
 							sdp: input.SDP,
 						},
 					},
@@ -228,7 +229,7 @@ export const appRouter = router({
 			if (error || !data) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to renegotiate tracks",
+					message: "The user has provided a code snippet that appears to",
 				});
 			}
 
@@ -247,7 +248,7 @@ export const appRouter = router({
 
 			// Subscribe to Redis channel (safe to call multiple times)
 			await redisSub.subscribe(channel).catch(() => {});
-
+				
 			try {
 				// This is the clean modern pattern
 				for await (const [rawMessage] of on(redisEvents, channel, { signal })) {
@@ -260,7 +261,9 @@ export const appRouter = router({
 				}
 			} finally {
 				// Perfect cleanup when client leaves / disconnects
-				//
+				// No need to check if subscribed, unsubscribe is idempotent
+				// We use Promise.allSettled to ensure both operations are attempted, even if one fails
+				// This prevents potential memory leaks from lingering subscriptions if removeParticipant fails
 
 				await Promise.allSettled([
 					redisSub.unsubscribe(channel),

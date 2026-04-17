@@ -6,67 +6,14 @@ import { useTRPC } from "~/trpc";
 import { useMutation } from "@tanstack/react-query";
 import { useSubscription } from "@trpc/tanstack-react-query";
 
-
 export function useRealtimeSFU(roomId = "default") {
 	const pcRef = useRef<RTCPeerConnection | null>(null);
 	const localStreamRef = useRef<MediaStream | null>(null);
 	const subscriptionRef = useRef(null);
+
 	const t = useTRPC();
 	const { mutateAsync, isPending } = useMutation(
-		t.createSession.mutationOptions({
-			onError() {
-				console.error("Failed to create session");
-			},
-			async onSuccess({ turnCredentials, sessionId }) {
-				console.log("Session created with ID:", sessionId);
-				const pc = new RTCPeerConnection(
-					JSON.parse(turnCredentials) as RTCConfiguration,
-				);
-				pcRef.current = pc;
-				pc.ontrack = (e) => {
-					const mid = e.transceiver?.mid;
-					if (mid && e.track) attachRealTrack(mid, e.track);
-				};
-				setMySessionId(sessionId);
-
-				console.log("Track pushed successfully");
-				if (!pcRef.current) {
-					console.error("PeerConnection not initialized");
-					return;
-				}
-				const localStream = await navigator.mediaDevices
-					.getUserMedia({ audio: true, video: true })
-					.catch((err) => {
-						console.error("Failed to get user media:", err);
-						return null;
-					});
-
-				localStreamRef.current = localStream;
-				if (!localStream) {
-					console.error("No local stream available");
-					return;
-				}
-				localStream.getTracks().forEach((track) => {
-					pcRef.current?.addTransceiver(track, { direction: "sendonly" });
-				});
-
-				const offer = await pcRef.current.createOffer();
-				await pcRef.current.setLocalDescription(offer);
-
-				const pushRes = await pushTrack({
-					sessionId,
-					SDP: offer.sdp!,
-				});
-
-				await pcRef.current.setRemoteDescription({
-					type: "answer",
-					sdp: pushRes.sdp,
-				});
-				console.log("Session setup complete");
-
-				pullRemoteTracks(sessionId);
-			},
-		}),
+		t.createSession.mutationOptions(),
 	);
 
 	const pullRemoteTracks = async (
@@ -91,14 +38,7 @@ export function useRealtimeSFU(roomId = "default") {
 			});
 		}
 	};
-	const { mutateAsync: pushTrack } = useMutation(
-		t.pushTrack.mutationOptions({
-			onError() {
-				console.error("Failed to push track");
-			},
-			async onSuccess() {},
-		}),
-	);
+	const { mutateAsync: pushTrack } = useMutation(t.pushTrack.mutationOptions());
 	const { mutateAsync: pullTracks } = useMutation(
 		t.pullTracks.mutationOptions({}),
 	);
@@ -147,7 +87,72 @@ export function useRealtimeSFU(roomId = "default") {
 
 	const join = async () => {
 		if (isPending) return;
-		await mutateAsync();
+		try {
+			const { turnCredentials, sessionId } = await mutateAsync();
+			console.log("Session created with ID:", sessionId);
+			const pc = new RTCPeerConnection(
+				JSON.parse(turnCredentials) as RTCConfiguration,
+			);
+
+			pcRef.current = pc;
+			pc.ontrack = (e) => {
+				const mid = e.transceiver?.mid;
+				if (mid && e.track) attachRealTrack(mid, e.track);
+			};
+			setMySessionId(sessionId);
+
+			console.log("Track pushed successfully");
+			if (!pcRef.current) {
+				console.error("PeerConnection not initialized");
+				return;
+			}
+			const localStream = await navigator.mediaDevices
+				.getUserMedia({ audio: true, video: true })
+				.catch((err) => {
+					console.error("Error accessing media devices:", err);
+
+					console.error("Failed to get user media:", err);
+					return null;
+				});
+            
+
+				
+
+
+			
+
+				
+
+
+
+			localStreamRef.current = localStream;
+			if (!localStream) {
+				console.error("No local stream available");
+
+				return;
+			}
+			localStream.getTracks().forEach((track) => {
+				pcRef.current?.addTransceiver(track, { direction: "sendonly" });
+			});
+
+			const offer = await pcRef.current.createOffer();
+			await pcRef.current.setLocalDescription(offer);
+
+			const pushRes = await pushTrack({
+				sessionId,
+				SDP: offer.sdp!,
+			});
+
+			await pcRef.current.setRemoteDescription({
+				type: "answer",
+				sdp: pushRes.sdp,
+			});
+			console.log("Session setup complete");
+
+			pullRemoteTracks(sessionId);
+		} catch (error) {
+			console.error("Failed to create session", error);
+		}
 	};
 
 	const leave = () => {

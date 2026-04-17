@@ -16,14 +16,17 @@ interface VoiceState {
 	reset: () => void;
 }
 
-// Fully typed store creator (no `any`)
+// Fully typed store creator (no `any`
+// 
 const storeCreator: StateCreator<VoiceState> = (set) => ({
 	mySessionId: "",
 	participants: {},
 	isConnected: false,
 	status: "left",
+	// Set the current connection status
 	setStatus: (status: VoiceState["status"]) => set({ status }),
 
+	// Set the current user's session ID
 	setMySessionId: (id: string) => set({ mySessionId: id }),
 	setIsConnected: (connected: boolean) => set({ isConnected: connected }),
 	consolidateTracks: (tracks: CloudflareTrack[], isMine = false) =>
@@ -50,7 +53,7 @@ const storeCreator: StateCreator<VoiceState> = (set) => ({
 
 			return { participants };
 		}),
-
+// Attach the real MediaStreamTrack to the participant and add it to their MediaStream
 	attachRealTrack: (mid: string, realTrack: MediaStreamTrack) =>
 		set((state) => {
 			const participants = { ...state.participants };
@@ -63,7 +66,7 @@ const storeCreator: StateCreator<VoiceState> = (set) => ({
 			}
 			return { participants };
 		}),
-
+// Remove participant and stop their tracks
 	removeParticipant: (sessionId: string) =>
 		set((state) => {
 			const participants = { ...state.participants };
@@ -76,8 +79,8 @@ const storeCreator: StateCreator<VoiceState> = (set) => ({
 			return { participants };
 		}),
 
-    add    
-
+        
+// Reset the store to its initial state
 	reset: () => set({ mySessionId: "", participants: {}, isConnected: false }),
 });
 
