@@ -2,9 +2,9 @@
 
 import { EventEmitter } from "node:events";
 import Redis from "ioredis";
-import { env } from "./env";
+import { env } from "../config/env";
 
-import type { Joined, Left, Room, RoomMembers, RoomRedis } from "./types";
+import type { Joined, Left, Room, RoomMembers, RoomRedis } from "../types";
 
 // Global EventEmitter for handling Redis pub/sub events across the app
 export const redisEvents = new EventEmitter();

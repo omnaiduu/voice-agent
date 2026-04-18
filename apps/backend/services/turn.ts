@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { env } from "./env";
+import { env } from "../config/env";
 
 export async function getIceServer() {
 	// Generate TURN credentials
