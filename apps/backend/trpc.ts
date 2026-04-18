@@ -7,13 +7,13 @@ import { env } from "./env";
 import {
 	addParticipant,
 	getAllParticipants,
-	getparticipant,
+	getParticipant,
 	redisEvents,
 	redisSub,
 	removeParticipant,
 } from "./redis";
 import { getIceServer } from "./turn";
-import { PullTracksResponseSchema, type RoomEvent } from "./types";
+import { PullTracksResponseSchema, type Room, type RoomEvent } from "./types";
 
 const t = initTRPC.create({
 	sse: {
@@ -144,15 +144,21 @@ export const appRouter = router({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			const room = input.participantSessionId
-				? await getparticipant(input.roomId, input.participantSessionId)
-				: await getAllParticipants(input.roomId);
-
-			if (!room) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Participant not found in room",
-				});
+			let room: Room;
+			if (input.participantSessionId) {
+				const participant = await getParticipant(
+					input.roomId,
+					input.participantSessionId,
+				);
+				if (!participant) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Participant not found in room",
+					});
+				}
+				room = { [input.participantSessionId]: participant };
+			} else {
+				room = await getAllParticipants(input.roomId);
 			}
 
 			const { data, error } = await cf.POST(
