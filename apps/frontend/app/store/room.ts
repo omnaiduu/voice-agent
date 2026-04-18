@@ -14,6 +14,8 @@ interface VoiceState {
 	attachRealTrack: (mid: string, track: MediaStreamTrack) => void;
 	removeParticipant: (sessionId: string) => void;
 	reset: () => void;
+	setStatus: (status: VoiceState["status"]) => void;
+	setIsConnected: (connected: boolean) => void;
 }
 
 // Fully typed store creator (no `any`

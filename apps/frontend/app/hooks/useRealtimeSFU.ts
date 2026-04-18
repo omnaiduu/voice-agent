@@ -1,18 +1,46 @@
 import { useMutation } from "@tanstack/react-query";
 import { useSubscription } from "@trpc/tanstack-react-query";
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 import { useTRPC } from "~/trpc";
 import { useVoiceStore } from "../store/room";
 
-export function useRealtimeSFU(roomId = "default") {
+export function useRealtimeSFU(_roomId = "default") {
 	const pcRef = useRef<RTCPeerConnection | null>(null);
 	const localStreamRef = useRef<MediaStream | null>(null);
-	const subscriptionRef = useRef(null);
+	const _subscriptionRef = useRef(null);
 
 	const t = useTRPC();
 	const { mutateAsync, isPending } = useMutation(
 		t.createSession.mutationOptions(),
 	);
+
+	const { mutateAsync: pushTrack } = useMutation(t.pushTrack.mutationOptions());
+	const { mutateAsync: pullTracks } = useMutation(
+		t.pullTracks.mutationOptions({}),
+	);
+	const { mutateAsync: renegotiate } = useMutation(
+		t.renegotiate.mutationOptions({}),
+	);
+
+	const {
+		consolidateTracks,
+		attachRealTrack,
+		removeParticipant,
+		setMySessionId,
+		reset,
+		setStatus,
+		setIsConnected,
+		sessionId,
+	} = useVoiceStore((s) => ({
+		sessionId: s.mySessionId,
+		consolidateTracks: s.consolidateTracks,
+		attachRealTrack: s.attachRealTrack,
+		removeParticipant: s.removeParticipant,
+		setMySessionId: s.setMySessionId,
+		reset: s.reset,
+		setStatus: s.setStatus,
+		setIsConnected: s.setIsConnected,
+	}));
 
 	const pullRemoteTracks = async (
 		sessionId: string,
@@ -36,29 +64,6 @@ export function useRealtimeSFU(roomId = "default") {
 			});
 		}
 	};
-	const { mutateAsync: pushTrack } = useMutation(t.pushTrack.mutationOptions());
-	const { mutateAsync: pullTracks } = useMutation(
-		t.pullTracks.mutationOptions({}),
-	);
-	const { mutateAsync: renegotiate } = useMutation(
-		t.renegotiate.mutationOptions({}),
-	);
-
-	const {
-		consolidateTracks,
-		attachRealTrack,
-		removeParticipant,
-		setMySessionId,
-		reset,
-		sessionId,
-	} = useVoiceStore((s) => ({
-		sessionId: s.mySessionId,
-		consolidateTracks: s.consolidateTracks,
-		attachRealTrack: s.attachRealTrack,
-		removeParticipant: s.removeParticipant,
-		setMySessionId: s.setMySessionId,
-		reset: s.reset,
-	}));
 
 	const { reset: resetSubscription, status } = useSubscription(
 		t.subscribeToRoom.subscriptionOptions(
@@ -66,6 +71,7 @@ export function useRealtimeSFU(roomId = "default") {
 				sessionId: sessionId,
 			},
 			{
+				enabled: !!sessionId,
 				onData: (event) => {
 					console.log("Received room event:", event);
 					if (event.type === "joined" && event.sessionId !== sessionId) {
@@ -126,6 +132,23 @@ export function useRealtimeSFU(roomId = "default") {
 			const offer = await pcRef.current.createOffer();
 			await pcRef.current.setLocalDescription(offer);
 
+			// Consolidate local tracks into store
+			pcRef.current.getTransceivers().forEach((transceiver) => {
+				if (transceiver.mid && transceiver.sender.track) {
+					consolidateTracks(
+						[
+							{
+								mid: transceiver.mid,
+								trackName: transceiver.sender.track.kind,
+								sessionId,
+								kind: transceiver.sender.track.kind as "audio" | "video",
+							},
+						],
+						true,
+					);
+				}
+			});
+
 			const pushRes = await pushTrack({
 				sessionId,
 				SDP: offer.sdp!,
@@ -137,13 +160,19 @@ export function useRealtimeSFU(roomId = "default") {
 			});
 			console.log("Session setup complete");
 
+			setStatus("joined");
+			setIsConnected(true);
+
 			pullRemoteTracks(sessionId);
 		} catch (error) {
 			console.error("Failed to create session", error);
+			setStatus("error");
 		}
 	};
 
 	const leave = () => {
+		setStatus("left");
+		setIsConnected(false);
 		resetSubscription();
 		pcRef.current?.close();
 		localStreamRef.current?.getTracks().forEach((t) => {

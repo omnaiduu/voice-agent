@@ -42,6 +42,7 @@ const PushTrackResponseSchema = z.object({
 });
 
 export const appRouter = router({
+	// Creates a new WebRTC session
 	createSession: publicProcedure.mutation(async () => {
 		try {
 			const [{ data }, turnCredentials] = await Promise.all([
@@ -86,6 +87,7 @@ export const appRouter = router({
 			});
 		}
 	}),
+	// Pushes a track to the session
 	pushTrack: publicProcedure
 		.input(
 			z.object({
@@ -135,6 +137,7 @@ export const appRouter = router({
 			return { sdp: sessionDescription.sdp };
 		}),
 
+	// Pulls tracks from other participants
 	pullTracks: publicProcedure
 		.input(
 			z.object({
@@ -208,6 +211,7 @@ export const appRouter = router({
 				...dataValidation.data,
 			};
 		}),
+	// Renegotiates the session SDP
 	renegotiate: publicProcedure
 		.input(
 			z.object({
@@ -227,7 +231,7 @@ export const appRouter = router({
 					},
 					body: {
 						sessionDescription: {
-							type: "offer",
+							type: "answer",
 							sdp: input.SDP,
 						},
 					},
@@ -236,13 +240,14 @@ export const appRouter = router({
 			if (error || !data) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "The user has provided a code snippet that appears to",
+					message: "Failed to renegotiate session",
 				});
 			}
 
 			return data;
 		}),
 
+	// Subscribes to room events
 	subscribeToRoom: publicProcedure
 		.input(
 			z.object({
