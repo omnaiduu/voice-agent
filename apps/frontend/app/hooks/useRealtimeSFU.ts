@@ -60,12 +60,12 @@ export function useRealtimeSFU(_roomId = "default") {
 			await pcRef.current?.setLocalDescription(answer);
 			await renegotiate({
 				sessionId,
-				SDP: answer.sdp!,
+				SDP: answer.sdp as string,
 			});
 		}
 	};
 
-	const { reset: resetSubscription, status } = useSubscription(
+	const { reset: resetSubscription } = useSubscription(
 		t.subscribeToRoom.subscriptionOptions(
 			{
 				sessionId: sessionId,
@@ -87,77 +87,89 @@ export function useRealtimeSFU(_roomId = "default") {
 			},
 		),
 	);
-	// Create PeerConnection (only once)
+
+	const setupPeerConnection = (turnCredentials: string): RTCPeerConnection => {
+		const pc = new RTCPeerConnection(
+			JSON.parse(turnCredentials) as RTCConfiguration,
+		);
+		pc.ontrack = (e) => {
+			const mid = e.transceiver?.mid;
+			if (mid && e.track) attachRealTrack(mid, e.track);
+		};
+		return pc;
+	};
+
+	const getLocalMedia = async (): Promise<MediaStream | null> => {
+		try {
+			return await navigator.mediaDevices.getUserMedia({
+				audio: true,
+				video: true,
+			});
+		} catch (err) {
+			console.error("Error accessing media devices:", err);
+			return null;
+		}
+	};
+
+	const pushLocalTracks = async (pc: RTCPeerConnection, sessionId: string) => {
+		const offer = await pc.createOffer();
+		await pc.setLocalDescription(offer);
+
+		// Consolidate local tracks into store
+		pc.getTransceivers().forEach((transceiver) => {
+			if (transceiver.mid && transceiver.sender.track) {
+				consolidateTracks(
+					[
+						{
+							mid: transceiver.mid,
+							trackName: transceiver.sender.track.kind,
+							sessionId,
+							kind: transceiver.sender.track.kind as "audio" | "video",
+						},
+					],
+					true,
+				);
+			}
+		});
+
+		const pushRes = await pushTrack({
+			sessionId,
+			SDP: offer.sdp as string,
+		});
+
+		await pc.setRemoteDescription({
+			type: "answer",
+			sdp: pushRes.sdp,
+		});
+	};
 
 	const join = async () => {
 		if (isPending) return;
 		try {
 			const { turnCredentials, sessionId } = await mutateAsync();
 			console.log("Session created with ID:", sessionId);
-			const pc = new RTCPeerConnection(
-				JSON.parse(turnCredentials) as RTCConfiguration,
-			);
 
+			const pc = setupPeerConnection(turnCredentials);
 			pcRef.current = pc;
-			pc.ontrack = (e) => {
-				const mid = e.transceiver?.mid;
-				if (mid && e.track) attachRealTrack(mid, e.track);
-			};
 			setMySessionId(sessionId);
 
-			console.log("Track pushed successfully");
 			if (!pcRef.current) {
 				console.error("PeerConnection not initialized");
 				return;
 			}
-			const localStream = await navigator.mediaDevices
-				.getUserMedia({ audio: true, video: true })
-				.catch((err) => {
-					console.error("Error accessing media devices:", err);
 
-					console.error("Failed to get user media:", err);
-					return null;
-				});
-
+			const localStream = await getLocalMedia();
 			localStreamRef.current = localStream;
 			if (!localStream) {
 				console.error("No local stream available");
-
 				return;
 			}
+
 			localStream.getTracks().forEach((track) => {
 				pcRef.current?.addTransceiver(track, { direction: "sendonly" });
 			});
 
-			const offer = await pcRef.current.createOffer();
-			await pcRef.current.setLocalDescription(offer);
-
-			// Consolidate local tracks into store
-			pcRef.current.getTransceivers().forEach((transceiver) => {
-				if (transceiver.mid && transceiver.sender.track) {
-					consolidateTracks(
-						[
-							{
-								mid: transceiver.mid,
-								trackName: transceiver.sender.track.kind,
-								sessionId,
-								kind: transceiver.sender.track.kind as "audio" | "video",
-							},
-						],
-						true,
-					);
-				}
-			});
-
-			const pushRes = await pushTrack({
-				sessionId,
-				SDP: offer.sdp!,
-			});
-
-			await pcRef.current.setRemoteDescription({
-				type: "answer",
-				sdp: pushRes.sdp,
-			});
+			await pushLocalTracks(pc, sessionId);
 			console.log("Session setup complete");
 
 			setStatus("joined");
