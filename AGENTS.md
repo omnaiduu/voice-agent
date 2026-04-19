@@ -30,8 +30,8 @@
 
 ## Environment Setup
 
-- Backend requires Redis: `cd apps/backend && bun run start:redis`
-- SFU types: `cd apps/backend && bun run generate:sfu` (uses Cloudflare API)
+- Backend requires Redis: `cd apps/backend && pnpm run start:redis`
+- SFU types: `cd apps/backend && pnpm run generate:sfu` (uses Cloudflare API)
 
 ## Quirks
 

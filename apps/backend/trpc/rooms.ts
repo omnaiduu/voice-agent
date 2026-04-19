@@ -21,12 +21,7 @@ export const roomsRouter = router({
 		.subscription(async function* ({ input, signal }) {
 			const channel = input.roomId;
 
-			console.log(`[SUB] Started for room:${input.roomId} session:${input.sessionId} (signal aborted: ${signal?.aborted})`);
-
-			// Add this to see if tRPC ever aborts the signal
-			signal?.addEventListener('abort', () => {
-				console.log(`[SUB] SIGNAL ABORTED for room:${input.roomId} session:${input.sessionId}`);
-			});
+			
 
 			await redisSub.subscribe(channel);
 

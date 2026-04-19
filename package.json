@@ -8,7 +8,7 @@
 		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
 		"check-types": "turbo run check-types",
 		"opencode": "opencode web --port 3000 --hostname 0.0.0.0",
-		"tunnel": "cloudflared tunnel --no-autoupdate run --token eyJhIjoiYmE3YTVkZmMyYmRiMWY1NzI4MWYwYjY4ZjExMmExZjciLCJ0IjoiZWJiNTA3NzEtM2IxMC00MGJlLWE0MDQtNGY1NGFlZjUwNzE3IiwicyI6Ik1HWXdOekJqTkRRdFlqSmlZUzAwTXpnNExXRXlOelV0TVRObVlqaGlZbUkyWWpCaCJ9"
+		"clean": "rm -rf node_modules pnpm-lock.yaml && pnpm install"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.11",
@@ -20,7 +20,7 @@
 	"engines": {
 		"node": ">=18"
 	},
-	"packageManager": "bun@1.3.11",
+	"packageManager": "pnpm@9.15.0",
 	"workspaces": [
 		"apps/*",
 		"packages/*"
