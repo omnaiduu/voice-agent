@@ -4,8 +4,13 @@ import { redisEvents, redisSub, removeParticipant } from "../services/redis";
 import type { RoomEvent } from "../types";
 import { publicProcedure, router } from "./base";
 
+/**
+ * Router for room-related operations.
+ */
 export const roomsRouter = router({
-	// Subscribes to room events
+	/**
+	 * Subscribes to room events for a given room and session.
+	 */
 	subscribeToRoom: publicProcedure
 		.input(
 			z.object({
@@ -16,11 +21,9 @@ export const roomsRouter = router({
 		.subscription(async function* ({ input, signal }) {
 			const channel = input.roomId;
 
-			// Subscribe to Redis channel (safe to call multiple times)
-			await redisSub.subscribe(channel).catch(() => {});
+			await redisSub.subscribe(channel);
 
 			try {
-				// This is the clean modern pattern
 				for await (const [rawMessage] of on(redisEvents, channel, { signal })) {
 					try {
 						const parsed = JSON.parse(rawMessage) as RoomEvent;
@@ -30,11 +33,6 @@ export const roomsRouter = router({
 					}
 				}
 			} finally {
-				// Perfect cleanup when client leaves / disconnects
-				// No need to check if subscribed, unsubscribe is idempotent
-				// We use Promise.allSettled to ensure both operations are attempted, even if one fails
-				// This prevents potential memory leaks from lingering subscriptions if removeParticipant fails
-
 				await Promise.allSettled([
 					redisSub.unsubscribe(channel),
 					removeParticipant(input.roomId, input.sessionId),

@@ -133,7 +133,9 @@ export const sessionsRouter = router({
 				}
 				room = { [input.participantSessionId]: participant };
 			} else {
-				room = await getAllParticipants(input.roomId);
+				const allParticipants = await getAllParticipants(input.roomId);
+				const { [input.sessionId]: _, ...filteredRoom } = allParticipants;
+				room = filteredRoom;
 			}
 
 			const { data, error } = await cf.POST(
