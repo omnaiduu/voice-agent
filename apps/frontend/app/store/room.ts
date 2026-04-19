@@ -67,7 +67,7 @@ const addTracksToParticipants = (
 			[track.mid]: {
 				mid: track.mid,
 				trackName: track.trackName,
-				kind: track.kind,
+				
 			},
 		};
 
@@ -96,6 +96,7 @@ const attachTrackToParticipant = (
 				[mid]: {
 					...participant.tracks[mid],
 					track: realTrack,
+					kind: realTrack.kind as "audio" | "video",
 				},
 			};
 

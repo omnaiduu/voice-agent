@@ -4,7 +4,7 @@
     "shadcn": {
       "type": "local",
       "command": [
-        "bunx",
+        "pnpx",
         "shadcn@latest",
         "mcp"
       ],
@@ -12,7 +12,7 @@
     },
     "chrome-devtools": {
       "type": "local",
-      "command": ["bunx", "-y", "chrome-devtools-mcp@latest"]
+      "command": ["pnpx", "chrome-devtools-mcp@latest"]
     }
   }
 }

@@ -13,8 +13,8 @@
 	"scripts": {
 		"dev": "tsx watch index.ts",
 		"generate:sfu": "pnpx openapi-typescript https://developers.cloudflare.com/realtime/static/calls-api-2024-05-21.yaml --output apps/backend/cloudflare-sfu/types.ts",
-		"start:redis": "sudo service redis-server start",
-		"stop:redis": "sudo service redis-server stop",
+		"start:redis": "docker run -d --name redis-server -p 6379:6379 redis",
+		"stop:redis": "docker stop redis-server && docker rm redis-server",
 		"start": "node dist/index.js"
 	},
 	"exports": {

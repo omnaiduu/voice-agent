@@ -29,8 +29,14 @@ export const roomsRouter = router({
 				for await (const [rawMessage] of on(redisEvents, channel, { signal })) {
 					try {
 						const parsed = JSON.parse(rawMessage) as RoomEvent;
-						console.log("[BACKEND] Room event received:", parsed);
-						yield parsed;
+						
+						if(parsed.sessionId == input.sessionId) {
+							console.warn(`[BACKEND] ignoring event for session ${parsed.sessionId} as it matches the subscriber's sessionId ${input.sessionId}`);
+							continue;
+						} else {
+console.log("[BACKEND] Room event received:", parsed);
+							yield parsed;
+						}
 					} catch (parseErr) {
 						console.error("[BACKEND] Room event parse error:", parseErr);
 					}

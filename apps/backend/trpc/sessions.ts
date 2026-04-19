@@ -93,6 +93,10 @@ export const sessionsRouter = router({
 					message: "Failed to push track",
 				});
 			}
+			console.log(
+				"[BACKEND] Raw Cloudflare API response data for pushTrack:",
+				JSON.stringify(data, null, 2),
+			);
 
 			const dataValidation = PushTrackResponseSchema.safeParse(data);
 			if (!dataValidation.success) {

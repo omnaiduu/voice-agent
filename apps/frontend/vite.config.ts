@@ -8,6 +8,7 @@ export default defineConfig({
 		tsconfigPaths: true,
 	},
 	server: {
+		allowedHosts: true,
 		proxy: {
 			"/trpc": "http://localhost:3001/",
 		},

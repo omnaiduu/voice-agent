@@ -12,7 +12,7 @@ export const PullTracksResponseSchema = z.object({
 			sessionId: z.string(),
 			trackName: z.string(),
 			mid: z.string(),
-			kind: z.enum(["audio", "video"]),
+			
 		}),
 	),
 	sessionDescription: z.object({
