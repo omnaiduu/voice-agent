@@ -43,12 +43,10 @@ export async function getAllParticipants(
 ): Promise<Room> {
 	try {
 		const data = (await redis.hgetall(roomId)) as RoomRedis;
+		console.log("[BACKEND] Retrieved participants for room", roomId, "count:", Object.keys(data).length);
 		return parseRoom(data);
 	} catch (error) {
-		console.error(
-			`Error retrieving all participants from room ${roomId}:`,
-			error,
-		);
+		console.error("[BACKEND] Error retrieving participants for room", roomId, ":", error);
 		return {};
 	}
 }
@@ -73,11 +71,9 @@ export async function addParticipant(
 		redisMulti.publish(roomId, JSON.stringify(event));
 
 		await redisMulti.exec();
+		console.log("[BACKEND] Added participant", sessionId, "to room", roomId);
 	} catch (error) {
-		console.error(
-			`Error adding participant ${sessionId} to room ${roomId}:`,
-			error,
-		);
+		console.error("[BACKEND] Error adding participant", sessionId, "to room", roomId, ":", error);
 		throw error;
 	}
 }
@@ -115,11 +111,9 @@ export async function removeParticipant(
 		redisMulti.publish(roomId, JSON.stringify(event));
 		redisMulti.hdel(roomId, sessionId);
 		await redisMulti.exec();
+		console.log("[BACKEND] Removed participant", sessionId, "from room", roomId);
 	} catch (error) {
-		console.error(
-			`Error removing participant ${sessionId} from room ${roomId}:`,
-			error,
-		);
+		console.error("[BACKEND] Error removing participant", sessionId, "from room", roomId, ":", error);
 		throw error;
 	}
 }

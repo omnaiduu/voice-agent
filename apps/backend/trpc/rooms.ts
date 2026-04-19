@@ -21,22 +21,34 @@ export const roomsRouter = router({
 		.subscription(async function* ({ input, signal }) {
 			const channel = input.roomId;
 
+			console.log(`[SUB] Started for room:${input.roomId} session:${input.sessionId} (signal aborted: ${signal?.aborted})`);
+
+			// Add this to see if tRPC ever aborts the signal
+			signal?.addEventListener('abort', () => {
+				console.log(`[SUB] SIGNAL ABORTED for room:${input.roomId} session:${input.sessionId}`);
+			});
+
 			await redisSub.subscribe(channel);
 
 			try {
 				for await (const [rawMessage] of on(redisEvents, channel, { signal })) {
 					try {
 						const parsed = JSON.parse(rawMessage) as RoomEvent;
+						console.log("[BACKEND] Room event received:", parsed);
 						yield parsed;
 					} catch (parseErr) {
-						console.error("Redis message parse error:", parseErr);
+						console.error("[BACKEND] Room event parse error:", parseErr);
 					}
 				}
+			} catch (error) {
+				console.error("[BACKEND] Room subscription error:", error);
 			} finally {
+				console.log(`[SUB] FINALLY RUNNING for room:${input.roomId} session:${input.sessionId}`);
 				await Promise.allSettled([
 					redisSub.unsubscribe(channel),
 					removeParticipant(input.roomId, input.sessionId),
 				]);
+				console.log(`[SUB] Cleanup complete for room:${input.roomId} session:${input.sessionId}`);
 			}
 		}),
 });

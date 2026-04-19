@@ -3,8 +3,9 @@ import { useSubscription } from "@trpc/tanstack-react-query";
 import { useRef } from "react";
 import { useTRPC } from "~/trpc";
 import { useVoiceStore } from "../store/room";
-
+import { useShallow } from "zustand/shallow";
 export function useRealtimeSFU(_roomId = "default") {
+	console.log("hook render ");
 	const pcRef = useRef<RTCPeerConnection | null>(null);
 	const localStreamRef = useRef<MediaStream | null>(null);
 	const _subscriptionRef = useRef(null);
@@ -31,37 +32,46 @@ export function useRealtimeSFU(_roomId = "default") {
 		setStatus,
 		setIsConnected,
 		sessionId,
-	} = useVoiceStore((s) => ({
-		sessionId: s.mySessionId,
-		consolidateTracks: s.consolidateTracks,
-		attachRealTrack: s.attachRealTrack,
-		removeParticipant: s.removeParticipant,
-		setMySessionId: s.setMySessionId,
-		reset: s.reset,
-		setStatus: s.setStatus,
-		setIsConnected: s.setIsConnected,
-	}));
+	} = useVoiceStore(
+		useShallow((s) => ({
+			sessionId: s.mySessionId,
+			consolidateTracks: s.consolidateTracks,
+			attachRealTrack: s.attachRealTrack,
+			removeParticipant: s.removeParticipant,
+			setMySessionId: s.setMySessionId,
+			reset: s.reset,
+			setStatus: s.setStatus,
+			setIsConnected: s.setIsConnected,
+		})),
+	);
 
 	const pullRemoteTracks = async (
 		sessionId: string,
 		remotesessionId?: string,
-	) => {
-		const pullres = await pullTracks({
-			sessionId,
-			participantSessionId: remotesessionId,
-		});
-		consolidateTracks(pullres.tracks);
-		pcRef.current?.setRemoteDescription({
-			type: "offer",
-			sdp: pullres.sessionDescription.sdp,
-		});
-		const answer = await pcRef.current?.createAnswer();
-		if (answer) {
-			await pcRef.current?.setLocalDescription(answer);
-			await renegotiate({
+	): Promise<boolean> => {
+		try {
+			const pullres = await pullTracks({
 				sessionId,
-				SDP: answer.sdp as string,
+				participantSessionId: remotesessionId,
 			});
+			consolidateTracks(pullres.tracks);
+			pcRef.current?.setRemoteDescription({
+				type: "offer",
+				sdp: pullres.sessionDescription.sdp,
+			});
+			const answer = await pcRef.current?.createAnswer();
+			if (answer) {
+				await pcRef.current?.setLocalDescription(answer);
+				await renegotiate({
+					sessionId,
+					SDP: answer.sdp as string,
+				});
+			}
+			console.log("[FRONTEND] Remote tracks pulled successfully");
+			return true;
+		} catch (error) {
+			console.error("[FRONTEND] Failed to pull remote tracks:", error);
+			return false;
 		}
 	};
 
@@ -73,7 +83,7 @@ export function useRealtimeSFU(_roomId = "default") {
 			{
 				enabled: !!sessionId,
 				onData: (event) => {
-					console.log("Received room event:", event);
+					console.log("[FRONTEND] Received room event:", event);
 					if (event.type === "joined" && event.sessionId !== sessionId) {
 						pullRemoteTracks(sessionId, event.sessionId);
 					}
@@ -82,11 +92,13 @@ export function useRealtimeSFU(_roomId = "default") {
 					}
 				},
 				onError(err) {
-					console.error("Subscription error:", err);
+					console.error("[FRONTEND] Subscription error:", err);
 				},
 			},
 		),
 	);
+
+	console.log("[FRONTEND] Subscription initialized, enabled:", !!sessionId);
 
 	const setupPeerConnection = (turnCredentials: string): RTCPeerConnection => {
 		const pc = new RTCPeerConnection(
@@ -129,6 +141,7 @@ export function useRealtimeSFU(_roomId = "default") {
 					],
 					true,
 				);
+				attachRealTrack(transceiver.mid, transceiver.sender.track);
 			}
 		});
 
@@ -175,7 +188,10 @@ export function useRealtimeSFU(_roomId = "default") {
 			setStatus("joined");
 			setIsConnected(true);
 
-			pullRemoteTracks(sessionId);
+			const pullSuccess = await pullRemoteTracks(sessionId);
+			if (!pullSuccess) {
+				console.warn("[FRONTEND] Remote tracks pull failed, but session joined");
+			}
 		} catch (error) {
 			console.error("Failed to create session", error);
 			setStatus("error");

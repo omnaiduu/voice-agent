@@ -138,6 +138,15 @@ export const sessionsRouter = router({
 				room = filteredRoom;
 			}
 
+			if (Object.keys(room).length === 0) {
+				console.log("[BACKEND] No remote participants to pull tracks for");
+				return {
+					tracks: [],
+					sessionDescription: { type: "offer", sdp: "" }, // Minimal response
+					requiresImmediateRenegotiation: false,
+				};
+			}
+
 			const { data, error } = await cf.POST(
 				"/apps/{appId}/sessions/{sessionId}/tracks/new",
 				{
@@ -166,12 +175,28 @@ export const sessionsRouter = router({
 				},
 			);
 
-			if (error || !data) {
+			if (error) {
+				console.error("[BACKEND] Cloudflare API error in pullTracks:", error);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to pull tracks",
 				});
 			}
+
+			if (!data) {
+				console.error("[BACKEND] No data from Cloudflare in pullTracks");
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to pull tracks",
+				});
+			}
+
+			console.log(
+				"[BACKEND] Raw Cloudflare API response data:",
+				JSON.stringify(data, null, 2),
+			);
+
+			console.log("[BACKEND] Pull tracks successful, tracks count:", data.tracks?.length || 0);
 
 			const dataValidation = PullTracksResponseSchema.safeParse(data);
 			if (!dataValidation.success) {
