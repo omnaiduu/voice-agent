@@ -13,7 +13,7 @@ const envSchema = z.object({
   CF_CALL_API_TOKEN: z.string().min(1),
   TURN_TOKEN: z.string().min(1),
   TURN_API_KEY: z.string().min(1),
-  OPENAI_API_KEY: z.string().min(1),
+  
 });
 
 export const env = envSchema.parse(process.env);
