@@ -3,10 +3,11 @@ import { appRouter } from "./trpc";
 
 const server = createHTTPServer({
   router: appRouter,
-  basePath: "/trpc/",
+    basePath: "/trpc/",
+  
 });
 
 server.listen(3001, () => {
+  console.log("om")
   console.log("✅ Backend running on http://localhost:3001");
-  console.log("yeah");
 });
