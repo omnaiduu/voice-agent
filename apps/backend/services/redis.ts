@@ -58,14 +58,13 @@ export async function addParticipant(
 	roomId: string,
 	sessionId: string,
 	audioTrack: string,
-	videoTrack: string,
 ): Promise<void> {
 	try {
 		const redisMulti = redis.multi();
 		redisMulti.hset(
 			roomId,
 			sessionId,
-			JSON.stringify({ audioTrack, videoTrack }),
+			JSON.stringify({ audioTrack }),
 		);
 		const event: Joined = { type: "joined", sessionId };
 		redisMulti.publish(roomId, JSON.stringify(event));

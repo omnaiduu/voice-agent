@@ -115,7 +115,7 @@ export function useRealtimeSFU(_roomId = "default") {
 		try {
 			return await navigator.mediaDevices.getUserMedia({
 				audio: true,
-				video: true,
+				video: false,
 			});
 		} catch (err) {
 			console.error("Error accessing media devices:", err);
@@ -136,7 +136,6 @@ export function useRealtimeSFU(_roomId = "default") {
 							mid: transceiver.mid,
 							trackName: transceiver.sender.track.kind,
 							sessionId,
-							kind: transceiver.sender.track.kind as "audio" | "video",
 						},
 					],
 					true,

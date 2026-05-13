@@ -11,5 +11,5 @@ export const PushTrackResponseSchema = z.object({
 				mid: z.string(),
 			}),
 		)
-		.min(2),
+		.min(1),
 });

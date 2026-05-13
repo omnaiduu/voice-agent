@@ -1,11 +1,5 @@
 import z from "zod";
 
-export type Participant = {
-	sessionId: string;
-	voiceId: string;
-	audioId: string;
-};
-
 export const PullTracksResponseSchema = z.object({
 	tracks: z.array(
 		z.object({
@@ -34,7 +28,6 @@ export type Left = {
 
 export interface RoomMembers {
 	audioTrack: string;
-	videoTrack: string;
 }
 
 export interface Room {

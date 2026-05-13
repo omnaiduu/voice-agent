@@ -108,8 +108,7 @@ export const sessionsRouter = router({
 
 			const { sessionDescription, tracks } = dataValidation.data;
 			const track1 = tracks[0].trackName;
-			const track2 = tracks[1].trackName;
-			await addParticipant(input.roomId, input.sessionId, track1, track2);
+			await addParticipant(input.roomId, input.sessionId, track1);
 			return { sdp: sessionDescription.sdp };
 		}),
 
@@ -162,16 +161,11 @@ export const sessionsRouter = router({
 					},
 					body: {
 						tracks: Object.entries(room).flatMap(
-							([sessionId, { audioTrack, videoTrack }]) => [
+							([sessionId, { audioTrack }]) => [
 								{
 									location: "remote" as const,
 									sessionId,
 									trackName: audioTrack,
-								},
-								{
-									location: "remote" as const,
-									sessionId,
-									trackName: videoTrack,
 								},
 							],
 						) as components["schemas"]["TrackObject"][],
